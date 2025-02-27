@@ -3,6 +3,7 @@ A **terminal-based TUI music controller** for **Spotify**, built in **Rust** usi
 
 ## **Screenshot**  
 ![Screenshot](assets/scr.png)
+![Screenshot](assets/scr2.png)
 
 ## **Features**  
 ✅ **View Currently Playing Song** – Displays the current song, artist, and album in a clean terminal UI.  
