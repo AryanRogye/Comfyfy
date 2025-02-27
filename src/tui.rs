@@ -521,6 +521,10 @@ impl Tui
             ":c" => {
                 // clear the terminal
                 stdout().execute(Clear(ClearType::All)).expect("Error clearing terminal");
+
+                // set the song to none so that it detects a change
+                let mut last_track : MutexGuard<Option<String>>= LAST_TRACK.lock().unwrap();
+                *last_track = None;
             }
             _ => {}
         }
