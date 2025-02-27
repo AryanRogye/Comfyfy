@@ -425,15 +425,12 @@ impl Tui
                                     match self.control {
                                         Control::Pause => {
                                             self.auth.pause().await?;
-                                            self.print_log("Paused").await?;
                                         }
                                         Control::SkipBack => {
                                             self.auth.skip_back().await?;
-                                            self.print_log("Skip Back").await?;
                                         }
                                         Control::SkipForward => {
                                             self.auth.skip_forward().await?;
-                                            self.print_log("Skip Forward").await?;
                                         }
                                     }
                                 }
