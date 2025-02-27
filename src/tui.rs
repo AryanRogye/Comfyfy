@@ -119,9 +119,9 @@ impl Tui
                 break;
             }
             
-            self.render_skip_back(4, 1).await?;
-            self.render_pause(7, 1).await?;
-            self.render_skip_forward(10, 1).await?;
+            self.render_skip_back(4, 1, 0).await?;
+            self.render_pause(4, 1, 6).await?;
+            self.render_skip_forward(4, 1, 15).await?;
 
             self.render_state()?;
         }
@@ -133,40 +133,40 @@ impl Tui
         Ok(())
     }
 
-    fn render_box_around_text(&self, start_index : u16, padding : u16, display_str : String) -> Result<(), Box<dyn Error>>
+    fn render_box_around_text(&self, start_index : u16, padding : u16, display_str : String, start_x : u16) -> Result<(), Box<dyn Error>>
     {
-        stdout().execute(MoveTo(1 + padding, start_index))?; // center of the screen
+        stdout().execute(MoveTo((start_x + 1) + padding, start_index))?; // center of the screen
         stdout().execute(Print(&display_str))?;
 
         // add a | to the left of the pause
-        stdout().execute(MoveTo(0, start_index))?;
+        stdout().execute(MoveTo(start_x, start_index))?;
         stdout().execute(Print("│"))?;
         // add a | to the right of the pause
-        stdout().execute(MoveTo((display_str.len() as u16 + 1) + (padding * 2) , start_index))?;
+        stdout().execute(MoveTo(start_x + (display_str.len() as u16 + 1) + (padding * 2) , start_index))?;
         stdout().execute(Print("│"))?;
         
         // add a top left corner
-        stdout().execute(MoveTo(0, start_index - 1))?;
+        stdout().execute(MoveTo(start_x, start_index - 1))?;
         stdout().execute(Print("┌"))?;
         // add a top right corner
-        stdout().execute(MoveTo((display_str.len() as u16 + 1) + (padding * 2) , start_index - 1))?;
+        stdout().execute(MoveTo(start_x + (display_str.len() as u16 + 1) + (padding * 2) , start_index - 1))?;
         stdout().execute(Print("┐"))?;
 
         // add a bottom left corner
-        stdout().execute(MoveTo(0, start_index + 1))?;
+        stdout().execute(MoveTo(start_x, start_index + 1))?;
         stdout().execute(Print("└"))?;
         // add a bottom right corner
-        stdout().execute(MoveTo((display_str.len() as u16 + 1) + (padding * 2) , start_index + 1))?;
+        stdout().execute(MoveTo(start_x + (display_str.len() as u16 + 1) + (padding * 2) , start_index + 1))?;
         stdout().execute(Print("┘"))?;
 
         // add a - to the top of the pause
-        stdout().execute(MoveTo(1, start_index - 1))?;
+        stdout().execute(MoveTo(start_x + 1, start_index - 1))?;
         for _ in 1..display_str.len() as u16 + 1 + (padding * 2)
         {
             stdout().execute(Print("─"))?;
         }
         // add a - to the bottom of the pause
-        stdout().execute(MoveTo(1, start_index + 1))?;
+        stdout().execute(MoveTo(start_x + 1, start_index + 1))?;
         for _ in 1..display_str.len() as u16 + 1 + (padding * 2)
         {
             stdout().execute(Print("─"))?;
@@ -175,7 +175,7 @@ impl Tui
         Ok(())
     }
 
-    pub async fn render_pause(&self, start_index : u16, padding : u16) -> Result<(), Box<dyn Error>>
+    pub async fn render_pause(&self, start_index : u16, padding : u16, start_x : u16) -> Result<(), Box<dyn Error>>
     {
         if self.control == Control::Pause
         {
@@ -183,7 +183,7 @@ impl Tui
             stdout().execute(SetForegroundColor(Color::Green))?;
         }
 
-        self.render_box_around_text(start_index, padding, "Pause".to_string())?;
+        self.render_box_around_text(start_index, padding, "Pause".to_string(), start_x)?;
 
         // reset Color
         stdout().execute(ResetColor)?;
@@ -192,7 +192,7 @@ impl Tui
         Ok(())
     }
 
-    pub async fn render_skip_back(&self, start_index : u16, padding : u16) -> Result<(), Box<dyn Error>>
+    pub async fn render_skip_back(&self, start_index : u16, padding : u16, start_x : u16) -> Result<(), Box<dyn Error>>
     {
         if self.control == Control::SkipBack
         {
@@ -200,7 +200,7 @@ impl Tui
             stdout().execute(SetForegroundColor(Color::Green))?;
         }
         
-        self.render_box_around_text(start_index, padding, "<-".to_string())?;
+        self.render_box_around_text(start_index, padding, "<-".to_string(), start_x)?;
 
         // reset Color
         stdout().execute(ResetColor)?;
@@ -208,7 +208,7 @@ impl Tui
         Ok(())
     }
 
-    pub async fn render_skip_forward(&self, start_index : u16, padding : u16) -> Result<(), Box<dyn Error>>
+    pub async fn render_skip_forward(&self, start_index : u16, padding : u16, start_x : u16) -> Result<(), Box<dyn Error>>
     {
         if self.control == Control::SkipForward
         {
@@ -216,7 +216,7 @@ impl Tui
             stdout().execute(SetForegroundColor(Color::Green))?;
         }
 
-        self.render_box_around_text(start_index, padding, "->".to_string())?;
+        self.render_box_around_text(start_index, padding, "->".to_string(), start_x)?;
 
         // Reset Color
         stdout().execute(ResetColor)?;
