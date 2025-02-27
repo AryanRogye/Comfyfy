@@ -119,9 +119,9 @@ impl Tui
                 break;
             }
             
-            self.render_pause().await?;
-            self.render_skip_back().await?;
-            self.render_skip_forward().await?;
+            self.render_skip_back(4, 1).await?;
+            self.render_pause(7, 1).await?;
+            self.render_skip_forward(10, 1).await?;
 
             self.render_state()?;
         }
@@ -133,7 +133,49 @@ impl Tui
         Ok(())
     }
 
-    pub async fn render_pause(&self) -> Result<(), Box<dyn Error>>
+    fn render_box_around_text(&self, start_index : u16, padding : u16, display_str : String) -> Result<(), Box<dyn Error>>
+    {
+        stdout().execute(MoveTo(1 + padding, start_index))?; // center of the screen
+        stdout().execute(Print(&display_str))?;
+
+        // add a | to the left of the pause
+        stdout().execute(MoveTo(0, start_index))?;
+        stdout().execute(Print("│"))?;
+        // add a | to the right of the pause
+        stdout().execute(MoveTo((display_str.len() as u16 + 1) + (padding * 2) , start_index))?;
+        stdout().execute(Print("│"))?;
+        
+        // add a top left corner
+        stdout().execute(MoveTo(0, start_index - 1))?;
+        stdout().execute(Print("┌"))?;
+        // add a top right corner
+        stdout().execute(MoveTo((display_str.len() as u16 + 1) + (padding * 2) , start_index - 1))?;
+        stdout().execute(Print("┐"))?;
+
+        // add a bottom left corner
+        stdout().execute(MoveTo(0, start_index + 1))?;
+        stdout().execute(Print("└"))?;
+        // add a bottom right corner
+        stdout().execute(MoveTo((display_str.len() as u16 + 1) + (padding * 2) , start_index + 1))?;
+        stdout().execute(Print("┘"))?;
+
+        // add a - to the top of the pause
+        stdout().execute(MoveTo(1, start_index - 1))?;
+        for _ in 1..display_str.len() as u16 + 1 + (padding * 2)
+        {
+            stdout().execute(Print("─"))?;
+        }
+        // add a - to the bottom of the pause
+        stdout().execute(MoveTo(1, start_index + 1))?;
+        for _ in 1..display_str.len() as u16 + 1 + (padding * 2)
+        {
+            stdout().execute(Print("─"))?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn render_pause(&self, start_index : u16, padding : u16) -> Result<(), Box<dyn Error>>
     {
         if self.control == Control::Pause
         {
@@ -141,37 +183,7 @@ impl Tui
             stdout().execute(SetForegroundColor(Color::Green))?;
         }
 
-        let pause_str ="▌▌".to_string();
-        let (width, height) = terminal::size()?;
-
-        let base_width = width / 2 - ((pause_str.len() / 2) as u16);
-        let base_height = height / 2;
-
-        stdout().execute(MoveTo(base_width, base_height))?; // center of the screen
-        stdout().execute(Print(&pause_str))?;
-
-        // Top border
-        stdout().execute(MoveTo(base_width - 2, base_height - 1))?;
-        stdout().execute(Print("┌"))?;
-
-        for _ in 0..pause_str.len() - 2 {
-            stdout().execute(Print("─"))?;
-        }
-        stdout().execute(Print("┐"))?;
-
-        // Middle (Pause Symbol already drawn)
-        stdout().execute(MoveTo(base_width - 2, base_height))?;
-        stdout().execute(Print("│"))?;
-        stdout().execute(MoveTo(width / 2, base_height))?;
-        stdout().execute(Print("│"))?;
-
-        // Bottom border
-        stdout().execute(MoveTo(base_width - 2, base_height + 1))?;
-        stdout().execute(Print("└"))?;
-        for _ in 0..pause_str.len() - 2 {
-            stdout().execute(Print("─"))?;
-        }
-        stdout().execute(Print("┘"))?;
+        self.render_box_around_text(start_index, padding, "Pause".to_string())?;
 
         // reset Color
         stdout().execute(ResetColor)?;
@@ -180,50 +192,15 @@ impl Tui
         Ok(())
     }
 
-    pub async fn render_skip_back(&self) -> Result<(), Box<dyn Error>>
+    pub async fn render_skip_back(&self, start_index : u16, padding : u16) -> Result<(), Box<dyn Error>>
     {
         if self.control == Control::SkipBack
         {
             // set foreground to green
             stdout().execute(SetForegroundColor(Color::Green))?;
         }
-        let skip_back_str = "<-".to_string();
-        let (width, height) = terminal::size()?;
-
-        let base_width = width / 4 - ((skip_back_str.len() / 2) as u16);
-        let base_height = height / 2;
-
-        stdout().execute(MoveTo(base_width, base_height))?; // center of the screen
-
-        stdout().execute(Print(&skip_back_str))?;
-
-        //// Box Dimensions
-        //let box_width = skip_back_str.len() as u16 + 2;
-        //let box_height = 3;
-        //
-        //// Top border
-        //stdout().execute(MoveTo(base_width - 2, base_height - 1))?;
-        //stdout().execute(Print("┌"))?;
-        //
-        //for _ in 0..skip_back_str.len() - 2 {
-        //    stdout().execute(Print("─"))?;
-        //}
-        //stdout().execute(Print("┐"))?;
-        //
-        //// Middle (Skip Back Symbol already drawn)
-        //stdout().execute(MoveTo(base_width - 2, base_height))?;
-        //stdout().execute(Print("│"))?;
-        //stdout().execute(MoveTo(width / 4, base_height))?;
-        //stdout().execute(Print("│"))?;
-        //
-        //// Bottom border
-        //stdout().execute(MoveTo(base_width - 2, base_height + 1))?;
-        //stdout().execute(Print("└"))?;
-        //for _ in 0..skip_back_str.len() - 2 {
-        //    stdout().execute(Print("─"))?;
-        //}
-        //stdout().execute(Print("┘"))?;
-        //
+        
+        self.render_box_around_text(start_index, padding, "<-".to_string())?;
 
         // reset Color
         stdout().execute(ResetColor)?;
@@ -231,22 +208,15 @@ impl Tui
         Ok(())
     }
 
-    pub async fn render_skip_forward(&self) -> Result<(), Box<dyn Error>>
+    pub async fn render_skip_forward(&self, start_index : u16, padding : u16) -> Result<(), Box<dyn Error>>
     {
         if self.control == Control::SkipForward
         {
             // set foreground to green
             stdout().execute(SetForegroundColor(Color::Green))?;
         }
-        let skip_forward_str = "->".to_string();
-        let (width, height) = terminal::size()?;
 
-        let base_width = 3 * width / 4 - ((skip_forward_str.len() / 2) as u16);
-        let base_height = height / 2;
-
-        stdout().execute(MoveTo(base_width, base_height))?; // center of the screen
-
-        stdout().execute(Print(&skip_forward_str))?;
+        self.render_box_around_text(start_index, padding, "->".to_string())?;
 
         // Reset Color
         stdout().execute(ResetColor)?;
