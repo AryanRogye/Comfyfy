@@ -281,9 +281,28 @@ impl Tui
             return Ok(());
         }
 
-        stdout().execute(MoveTo(width / 2 - ((current_track.len() / 2) as u16), 1))?;
+
+        // Calculate available width inside borders (subtract 2 for left/right borders)
+        let available_width = width.saturating_sub(2);
+
+        // Truncate the song text if it's too long for the available width,
+        // reserving 3 characters for the ellipsis "..."
+        let display_track = if current_track.len() > available_width as usize {
+            let mut truncated: String = current_track.chars().take(available_width as usize - 3).collect();
+            truncated.push_str("...");
+            truncated
+        } else {
+            current_track.clone()
+        };
+
+        // Calculate x position to center the text within the available width:
+        // x = 1 (left border) + ((available_width - text_width) / 2)
+        let x = 1 + available_width.saturating_sub(display_track.len() as u16) / 2;
+
+        // Render the text at the calculated position (y coordinate set to 1)
+        stdout().execute(MoveTo(x, 1))?;
         stdout().execute(Clear(ClearType::CurrentLine))?;
-        stdout().execute(Print(&current_track))?;
+        stdout().execute(Print(&display_track))?;
 
 
         // wanna print a box around the song
