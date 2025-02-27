@@ -1,6 +1,7 @@
 # **Comfyfy 🎵**  
 A **terminal-based TUI music controller** for **Spotify**, built in **Rust** using `crossterm` and `reqwest`.  
 
+## **Screenshot**  
 ![Screenshot](assets/scr.png)
 
 ## **Features**  
@@ -10,8 +11,6 @@ A **terminal-based TUI music controller** for **Spotify**, built in **Rust** usi
 ✅ **Auto-Refreshing UI** – Updates song info every 5 seconds for a seamless experience.  
 ✅ **Spotify Authentication & Token Refresh** – Handles auth with automatic token refreshing.  
 
-## **Screenshot**  
-![Screenshot](assets/scr.png)
 
 ## **Installation & Usage**  
 1. **Clone the repository:**  
