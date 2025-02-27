@@ -1,14 +1,10 @@
-
-
-
 use std::{
     error::Error,
     io::stdout,
     io::Write,
     time::Duration,
-    thread
 };
-
+use std::sync::{Mutex, MutexGuard};
 use crossterm::{
     cursor::{
         MoveTo,
@@ -38,6 +34,7 @@ use crossterm::{
     ExecutableCommand
 };
 use tokio::time::{interval, sleep};
+use once_cell::sync::Lazy;
 
 
 /** 
@@ -50,21 +47,12 @@ This is meant to be ran in a tmux pane or a seperate terminal window
 **/
 
 use super::SpotifyClientAuth;
-use crate::spotify_client_auth::SpotifyCurrentPlaying;
 
 #[derive(PartialEq)]
 pub enum TuiState
 {
     CommandMode,
     NormalMode
-}
-enum TuiCommandMode
-{
-    QUIT,
-}
-enum TuiNormalMode
-{
-    Chill
 }
 
 #[derive(PartialEq)]
@@ -83,6 +71,9 @@ pub struct Tui
     running : bool,
     control : Control
 }
+
+static LAST_TRACK : Lazy<Mutex<Option<String>>> = Lazy::new(|| Mutex::new(None));
+static LAST_WIDTH : Lazy<Mutex<u16>> = Lazy::new(|| Mutex::new(8));
 
 impl Tui 
 {
@@ -135,6 +126,9 @@ impl Tui
             self.render_state()?;
         }
 
+        // clear the terminal
+        stdout().execute(Clear(ClearType::All))?;
+        // disable raw mode
         disable_raw_mode()?;
         Ok(())
     }
@@ -156,10 +150,6 @@ impl Tui
         stdout().execute(MoveTo(base_width, base_height))?; // center of the screen
         stdout().execute(Print(&pause_str))?;
 
-        // Box Dimensions
-        let box_width = pause_str.len() as u16 + 2;
-        let box_height = 3;
-        
         // Top border
         stdout().execute(MoveTo(base_width - 2, base_height - 1))?;
         stdout().execute(Print("┌"))?;
@@ -264,11 +254,9 @@ impl Tui
         Ok(())
     }
 
+
     pub async fn render_current_playing(&mut self) -> Result<(), Box<dyn Error>>
     {
-        static mut LAST_TRACK: Option<String> = None;
-        static mut LAST_WIDTH: u16 = 0;
-
         // Get the current song
         let current_track = match self.auth.get_current_playing().await? {
             Some(track) => format!("🎵 {} - {}", track.song, track.artists),
@@ -276,21 +264,23 @@ impl Tui
         };
 
         // Get terminal height for centering
-        let (width, height) = terminal::size()?;
+        let (width, _) = terminal::size()?;
 
-        unsafe {
-            // highest check for a redraw should be if the width is changed
-            if LAST_WIDTH != width{
-                LAST_TRACK = Some(current_track.clone());
-                LAST_WIDTH = width;
-            } 
-            // If the song hasn't changed, don't redraw
-            else if LAST_TRACK.as_ref() == Some(&current_track) 
-            {
-                return Ok(());
-            }
+        // Lock The Mutex before doing anything with it
+        let mut last_track : MutexGuard<Option<String>>= LAST_TRACK.lock().unwrap();
+        let mut last_width : MutexGuard<u16> = LAST_WIDTH.lock().unwrap();
+        // highest check for a redraw should be if the width is changed
+        if *last_width != width
+        {
+            *last_width = width;
+            *last_track = Some(current_track.clone());
         }
-        
+        // If the song hasn't changed, don't redraw
+        else if *last_track == Some(current_track.clone())
+        {
+            return Ok(());
+        }
+
         stdout().execute(MoveTo(width / 2 - ((current_track.len() / 2) as u16), 1))?;
         stdout().execute(Clear(ClearType::CurrentLine))?;
         stdout().execute(Print(&current_track))?;
@@ -299,13 +289,13 @@ impl Tui
         // wanna print a box around the song
         stdout().execute(MoveTo(1, 0))?; // top left
         // draw a line straight to the right till 1 before the max
-        for i in 1..width - 1
+        for _ in 1..width - 1
         {
             stdout().execute(Print("─"))?;
         }
         stdout().execute(MoveTo(1, 2))?; // bottom left
         // draw a line straight to the right till 1 before the max
-        for i in 1..width - 1
+        for _ in 1..width - 1
         {
             stdout().execute(Print("─"))?;
         }
@@ -358,6 +348,7 @@ impl Tui
     }
 
 
+    #[allow(dead_code)]
     pub async fn print_log(&self, log: &str) -> Result<(), Box<dyn Error>>
     {
         let (_, height) = terminal::size().expect("Error getting terminal size");

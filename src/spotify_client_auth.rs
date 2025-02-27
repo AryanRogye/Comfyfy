@@ -12,7 +12,7 @@ use std::{
     },
     io::{Read, Write}
 };
-use reqwest::Client;
+use reqwest::{Client, Response};
 use webbrowser;
 
 
@@ -281,20 +281,29 @@ impl SpotifyClientAuth
         }
         Ok(())
     }
-    pub async fn skip_back(&mut self) -> Result<(), Box<dyn std::error::Error>>
+
+    /**
+        Helper Function to send playback info for going back and forward
+        This is a post request
+    **/
+    async fn send_play_back_info(&mut self,  request : &str) -> Result<Response, Box<dyn std::error::Error>>
     {
-        let request = "https://api.spotify.com/v1/me/player/previous";
         let client = Client::new();
 
-        let response = client
+        let response : Response = client
             .post(request)
             .header("Authorization", format!("Bearer {}", self.get_token().await?))
             .header("Content-Length", "0")
             .send()
             .await?;
-        for (key, value) in response.headers().iter() {
-            self.add_debug_log(format!("{}: {:?}", key, value)).await?;
-        }
+
+        Ok(response)
+    }
+    pub async fn skip_back(&mut self) -> Result<(), Box<dyn std::error::Error>>
+    {
+        let request = "https://api.spotify.com/v1/me/player/previous";
+        let response : Response = self.send_play_back_info(request).await?;
+
         if response.status() == reqwest::StatusCode::NO_CONTENT {
             self.add_debug_log("⏮ Skipped back".to_string()).await?;
         }
@@ -304,18 +313,7 @@ impl SpotifyClientAuth
     pub async fn skip_forward(&mut self) -> Result<(), Box<dyn std::error::Error>>
     {
         let request = "https://api.spotify.com/v1/me/player/next";
-        let client = Client::new();
-
-        let response = client
-            .post(request)
-            .header("Authorization", format!("Bearer {}", self.get_token().await?))
-            .header("Content-Length", "0")
-            .send()
-            .await?;
-
-        for (key, value) in response.headers().iter() {
-            self.add_debug_log(format!("{}: {:?}", key, value)).await?;
-        }
+        let response : Response = self.send_play_back_info(request).await?;
 
         if response.status() == reqwest::StatusCode::NO_CONTENT {
             self.add_debug_log("⏭ Skipped forward".to_string()).await?;
@@ -323,7 +321,6 @@ impl SpotifyClientAuth
 
         Ok(())
     }
-
     pub async fn get_current_playing(&mut self) -> Result<Option<SpotifyCurrentPlaying>, Box<dyn std::error::Error>>
     {
 
