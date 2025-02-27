@@ -1,2 +1,6 @@
 /target
 .env
+.DS_Store
+Cargo.lock
+debug.log
+token.json
